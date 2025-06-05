@@ -17,7 +17,7 @@
             margin-bottom: 30px;
         }
 
-        form {
+        form.main-form {
             display: flex;
             justify-content: center;
             gap: 10px;
@@ -59,10 +59,13 @@
             padding: 12px 20px;
             margin-bottom: 10px;
             border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .todo-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
 
         .delete-btn {
@@ -78,21 +81,69 @@
         .delete-btn:hover {
             background-color: #c0392b;
         }
+
+        .subtask-list {
+            margin-top: 10px;
+            padding-left: 20px;
+        }
+
+        .subtask-list li {
+            background-color: #f9f9f9;
+            margin: 5px 0;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .subtask-form {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .subtask-form input[type="text"] {
+            flex: 1;
+            padding: 6px;
+            font-size: 14px;
+        }
+
+        .subtask-form button {
+            padding: 6px 12px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
     <h1>Todo List</h1>
-    <form action="/" method="POST">
+
+    <form action="/" method="POST" class="main-form">
         <input type="text" name="todoValue" placeholder="Enter a new todo" required>
         <button type="submit">Add Todo</button>
     </form>
+
     <ul>
         <% if(data) { %>
             <% data.forEach((todoValue) => { %>
                 <li>
-                    <%= todoValue.todo %>
-                    <form action="/<%= todoValue._id %>" method="POST" style="display: inline;">
-                        <button type="submit" class="delete-btn">Delete</button>
+                    <div class="todo-header">
+                        <span><strong><%= todoValue.todo %></strong></span>
+                        <form data-id="<%= todoValue._id %>" class="delete-form" style="display:inline;">
+                            <button type="submit" class="delete-btn">Delete</button>
+                        </form>
+                    </div>
+
+                    <% if (Array.isArray(todoValue.subtasks) && todoValue.subtasks.length > 0) { %>
+                        <ul class="subtask-list">
+                            <% todoValue.subtasks.forEach((sub) => { %>
+                                <li><%= sub.title %> <% if(sub.done){ %>(✔)<% } %></li>
+                            <% }) %>
+                        </ul>
+                    <% } %>
+                    
+
+                    <form action="/<%= todoValue._id %>/subtask" method="POST" class="subtask-form">
+                        <input type="text" name="subtaskTitle" placeholder="Add subtask..." required>
+                        <button type="submit">Add</button>
                     </form>
                 </li>
             <% }); %>
@@ -104,9 +155,9 @@
             button.addEventListener('click', function(event) {
                 event.preventDefault();
                 const form = event.target.closest('form');
-                const todoId = form.action.split('/').pop();
+                const todoId = form.dataset.id;
 
-                fetch(form.action, {
+                fetch('/' + todoId, {
                     method: 'DELETE'
                 })
                 .then(response => {

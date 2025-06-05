@@ -2,7 +2,7 @@ const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
-const Todo = require('./models/todo'); // Assurez-vous que le chemin est correct
+const Todo = require('./models/todo');
 
 const port = 3000;
 
@@ -17,42 +17,55 @@ mongoose.connect(dburl, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 });
-
-app.get('/', (request, response) => {
-    Todo.find()
-        .then(result => {
-            response.render('index', { data: result });
-        })
-        .catch(err => {
-            console.error(err);
-            response.status(500).send("Internal Server Error");
-        });
+app.get('/', async (req, res) => {
+    try {
+        const todos = await Todo.find(); // subtasks sont dans le tableau déjà
+        res.render('index', { data: todos });
+    } catch (err) {
+        res.status(500).send('Erreur serveur');
+    }
 });
 
-app.post('/', (request, response) => {
+
+app.post('/', (req, res) => {
+    const { todoValue } = req.body;
+
     const todo = new Todo({
-        todo: request.body.todoValue // Correction ici
+        todo: todoValue,
+        subtasks: []
     });
 
     todo.save()
-        .then(result => {
-            response.redirect('/');
-        })
+        .then(() => res.redirect('/'))
         .catch(err => {
             console.error(err);
-            response.status(500).send("Internal Server Error");
+            res.status(500).send("Internal Server Error");
         });
 });
 
-app.delete('/:id', (request, response) => {
-    Todo.findByIdAndDelete(request.params.id)
-        .then(result => {
-            console.log("Todo deleted:", result);
-            response.status(200).send("Todo deleted successfully");
-        })
+app.post('/:id/subtask', async (req, res) => {
+    const { subtaskTitle } = req.body;
+
+    try {
+        await Todo.findByIdAndUpdate(
+            req.params.id,
+            { $push: { subtasks: { title: subtaskTitle } } }, // pas juste un string
+            { new: true }
+        );
+        res.redirect('/');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Erreur lors de l’ajout de la sous-tâche');
+    }
+});
+
+
+app.delete('/:id', (req, res) => {
+    Todo.findByIdAndDelete(req.params.id)
+        .then(() => res.status(200).send("Todo deleted successfully"))
         .catch(err => {
             console.error(err);
-            response.status(500).send("Internal Server Error");
+            res.status(500).send("Internal Server Error");
         });
 });
 
