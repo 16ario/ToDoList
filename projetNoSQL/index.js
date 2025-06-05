@@ -1,4 +1,4 @@
-const express = require("express");
+const express = require("express"); 
 const session = require('express-session');
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
@@ -79,7 +79,8 @@ app.post('/signup', async (req, res) => {
         if (existingUser) {
             return res.render('signup', { error: 'Nom d\'utilisateur déjà pris' });
         }
-        const user = new User({ username, password });
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = new User({ username, password: hashedPassword });
         await user.save();
 
         req.session.isAuthenticated = true;
@@ -142,6 +143,35 @@ app.post('/:id/subtask', requireAuth, async (req, res) => {
     }
 });
 
+// Toggle todo done
+app.post('/:id/toggle', requireAuth, async (req, res) => {
+    try {
+        const todo = await Todo.findOne({ _id: req.params.id, userId: req.session.userId });
+        if (!todo) return res.status(404).send('Todo non trouvé');
+        todo.done = !todo.done;
+        await todo.save();
+        res.sendStatus(200);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Erreur serveur');
+    }
+});
+
+// Toggle subtask done
+app.post('/:todoId/subtask/:subtaskId/toggle', requireAuth, async (req, res) => {
+    try {
+        const todo = await Todo.findOne({ _id: req.params.todoId, userId: req.session.userId });
+        if (!todo) return res.status(404).send('Todo non trouvé');
+        const subtask = todo.subtasks.id(req.params.subtaskId);
+        if (!subtask) return res.status(404).send('Sous-tâche non trouvée');
+        subtask.done = !subtask.done;
+        await todo.save();
+        res.sendStatus(200);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Erreur serveur');
+    }
+});
 
 app.delete('/:id', requireAuth, async (req, res) => {
     try {
@@ -192,7 +222,6 @@ app.delete('/:id/tag/:tag', requireAuth, async (req, res) => {
         res.status(500).send('Erreur lors de la suppression du tag');
     }
 });
-
 
 app.listen(port, () => {
     console.log('Server running on port ' + port);
