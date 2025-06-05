@@ -93,6 +93,9 @@
             padding: 6px 10px;
             border-radius: 6px;
             font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .subtask-form {
@@ -110,6 +113,21 @@
         .subtask-form button {
             padding: 6px 12px;
             font-size: 14px;
+        }
+
+        .delete-subtask-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .delete-subtask-btn:hover {
+            background-color: #c0392b;
         }
     </style>
 </head>
@@ -135,11 +153,13 @@
                     <% if (Array.isArray(todoValue.subtasks) && todoValue.subtasks.length > 0) { %>
                         <ul class="subtask-list">
                             <% todoValue.subtasks.forEach((sub) => { %>
-                                <li><%= sub.title %> <% if(sub.done){ %>(✔)<% } %></li>
+                                <li>
+                                  <span><%= sub.title %> <% if(sub.done){ %>(✔)<% } %></span>
+                                  <button class="delete-subtask-btn" data-todo-id="<%= todoValue._id %>" data-subtask-id="<%= sub._id %>">Supprimer</button>
+                                </li>
                             <% }) %>
                         </ul>
                     <% } %>
-                    
 
                     <form action="/<%= todoValue._id %>/subtask" method="POST" class="subtask-form">
                         <input type="text" name="subtaskTitle" placeholder="Add subtask..." required>
@@ -151,6 +171,7 @@
     </ul>
 
     <script>
+        // Delete todo
         document.querySelectorAll('.delete-btn').forEach(button => {
             button.addEventListener('click', function(event) {
                 event.preventDefault();
@@ -165,6 +186,28 @@
                         window.location.reload();
                     } else {
                         console.error('Failed to delete todo');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            });
+        });
+
+        // Delete subtask
+        document.querySelectorAll('.delete-subtask-btn').forEach(button => {
+            button.addEventListener('click', function(event) {
+                const todoId = event.target.dataset.todoId;
+                const subtaskId = event.target.dataset.subtaskId;
+
+                fetch(`/${todoId}/subtask/${subtaskId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        window.location.reload();
+                    } else {
+                        console.error('Failed to delete subtask');
                     }
                 })
                 .catch(error => {
