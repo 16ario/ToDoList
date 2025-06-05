@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <title>Todo List</title>
     <style>
         body {
@@ -29,7 +29,14 @@
             font-size: 16px;
             border: 1px solid #ccc;
             border-radius: 6px;
+        }
+
+        form input[name="todoValue"] {
             width: 300px;
+        }
+
+        form input[name="tags"] {
+            width: 200px;
         }
 
         form button {
@@ -82,6 +89,20 @@
             background-color: #c0392b;
         }
 
+        .tags {
+            margin-top: 8px;
+        }
+
+        .tag {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            padding: 2px 8px;
+            margin-right: 6px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
         .subtask-list {
             margin-top: 10px;
             padding-left: 20px;
@@ -115,18 +136,18 @@
             font-size: 14px;
         }
 
-        .delete-subtask-btn {
+        .subtask-delete-btn {
             background-color: #e74c3c;
             color: white;
             border: none;
-            padding: 4px 8px;
             border-radius: 4px;
             cursor: pointer;
             font-size: 12px;
-            margin-left: 10px;
+            padding: 4px 8px;
+            transition: background-color 0.2s ease;
         }
 
-        .delete-subtask-btn:hover {
+        .subtask-delete-btn:hover {
             background-color: #c0392b;
         }
     </style>
@@ -135,13 +156,14 @@
     <h1>Todo List</h1>
 
     <form action="/" method="POST" class="main-form">
-        <input type="text" name="todoValue" placeholder="Enter a new todo" required>
+        <input type="text" name="todoValue" placeholder="Enter a new todo" required />
+        <input type="text" name="tags" placeholder="Add tags separated by commas" />
         <button type="submit">Add Todo</button>
     </form>
 
     <ul>
         <% if(data) { %>
-            <% data.forEach((todoValue) => { %>
+            <% data.forEach(todoValue => { %>
                 <li>
                     <div class="todo-header">
                         <span><strong><%= todoValue.todo %></strong></span>
@@ -150,19 +172,27 @@
                         </form>
                     </div>
 
+                    <% if (todoValue.tags && todoValue.tags.length > 0) { %>
+                        <div class="tags">
+                            <% todoValue.tags.forEach(tag => { %>
+                                <span class="tag"><%= tag %></span>
+                            <% }) %>
+                        </div>
+                    <% } %>
+
                     <% if (Array.isArray(todoValue.subtasks) && todoValue.subtasks.length > 0) { %>
                         <ul class="subtask-list">
-                            <% todoValue.subtasks.forEach((sub) => { %>
+                            <% todoValue.subtasks.forEach(sub => { %>
                                 <li>
-                                  <span><%= sub.title %> <% if(sub.done){ %>(✔)<% } %></span>
-                                  <button class="delete-subtask-btn" data-todo-id="<%= todoValue._id %>" data-subtask-id="<%= sub._id %>">Supprimer</button>
+                                    <span><%= sub.title %> <% if(sub.done){ %>(✔)<% } %></span>
+                                    <button class="subtask-delete-btn" data-todo-id="<%= todoValue._id %>" data-subtask-id="<%= sub._id %>">X</button>
                                 </li>
                             <% }) %>
                         </ul>
                     <% } %>
 
                     <form action="/<%= todoValue._id %>/subtask" method="POST" class="subtask-form">
-                        <input type="text" name="subtaskTitle" placeholder="Add subtask..." required>
+                        <input type="text" name="subtaskTitle" placeholder="Add subtask..." required />
                         <button type="submit">Add</button>
                     </form>
                 </li>
@@ -171,7 +201,6 @@
     </ul>
 
     <script>
-        // Delete todo
         document.querySelectorAll('.delete-btn').forEach(button => {
             button.addEventListener('click', function(event) {
                 event.preventDefault();
@@ -185,20 +214,21 @@
                     if (response.ok) {
                         window.location.reload();
                     } else {
-                        console.error('Failed to delete todo');
+                        alert('Failed to delete todo');
                     }
                 })
-                .catch(error => {
-                    console.error('Error:', error);
+                .catch(err => {
+                    console.error(err);
+                    alert('Error deleting todo');
                 });
             });
         });
 
-        // Delete subtask
-        document.querySelectorAll('.delete-subtask-btn').forEach(button => {
+        document.querySelectorAll('.subtask-delete-btn').forEach(button => {
             button.addEventListener('click', function(event) {
-                const todoId = event.target.dataset.todoId;
-                const subtaskId = event.target.dataset.subtaskId;
+                event.preventDefault();
+                const todoId = button.getAttribute('data-todo-id');
+                const subtaskId = button.getAttribute('data-subtask-id');
 
                 fetch(`/${todoId}/subtask/${subtaskId}`, {
                     method: 'DELETE'
@@ -207,11 +237,12 @@
                     if (response.ok) {
                         window.location.reload();
                     } else {
-                        console.error('Failed to delete subtask');
+                        alert('Failed to delete subtask');
                     }
                 })
-                .catch(error => {
-                    console.error('Error:', error);
+                .catch(err => {
+                    console.error(err);
+                    alert('Error deleting subtask');
                 });
             });
         });
