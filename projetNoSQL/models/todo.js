@@ -1,28 +1,16 @@
 const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
 
-const todoSchema = new Schema({
-    todo: {
-        type: String,
-        required: true
-    },
-    done: {
-        type: Boolean,
-        default: false
-    },
-    subtasks: [{
-        title: String,
-        done: {
-            type: Boolean,
-            default: false
-        }
-    }],
-    tags: [String],
-    createdAt: {
-        type: Date,
-        default: Date.now
-    }
+const SubtaskSchema = new mongoose.Schema({
+    title: { type: String, required: true },
+    done: { type: Boolean, default: false }
 });
 
-const Todo = mongoose.model("Todo", todoSchema);
-module.exports = Todo;
+const TodoSchema = new mongoose.Schema({
+    todo: { type: String, required: true },
+    done: { type: Boolean, default: false },
+    subtasks: [SubtaskSchema],
+    tags: [String],
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
+});
+
+module.exports = mongoose.model('Todo', TodoSchema);

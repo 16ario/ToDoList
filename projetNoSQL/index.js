@@ -1,9 +1,13 @@
 const express = require("express");
-const app = express();
+const session = require('express-session');
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
-const Todo = require('./models/todo');
+const bcrypt = require('bcrypt');
 
+const Todo = require('./models/todo');
+const User = require('./models/user');
+
+const app = express();
 const port = 3000;
 
 app.set("view engine", "ejs");
@@ -18,9 +22,86 @@ mongoose.connect(dburl, {
     useUnifiedTopology: true
 });
 
-app.get('/', async (req, res) => {
+app.use(session({
+    secret: 'secret_key',
+    resave: false,
+    saveUninitialized: false
+}));
+
+app.use((req, res, next) => {
+    res.locals.isAuthenticated = req.session.isAuthenticated || false;
+    res.locals.username = req.session.username || null;
+    next();
+});
+
+// Middleware pour protéger les routes
+function requireAuth(req, res, next) {
+    if (!req.session.isAuthenticated) {
+        return res.redirect('/login');
+    }
+    next();
+}
+
+app.get('/login', (req, res) => {
+    res.render('login', { error: null });
+});
+
+app.post('/login', async (req, res) => {
+    const { username, password } = req.body;
+
     try {
-        const todos = await Todo.find();
+        const user = await User.findOne({ username });
+
+        if (user) {
+            const isMatch = await bcrypt.compare(password, user.password);
+            if (isMatch) {
+                req.session.isAuthenticated = true;
+                req.session.userId = user._id;
+                req.session.username = username;
+                return res.redirect('/');
+            }
+        }
+        res.render('login', { error: 'Identifiants incorrects' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Erreur serveur');
+    }
+});
+
+app.get('/signup', (req, res) => {
+    res.render('signup', { error: null });
+});
+
+app.post('/signup', async (req, res) => {
+    const { username, password } = req.body;
+    try {
+        const existingUser = await User.findOne({ username });
+        if (existingUser) {
+            return res.render('signup', { error: 'Nom d\'utilisateur déjà pris' });
+        }
+        const user = new User({ username, password });
+        await user.save();
+
+        req.session.isAuthenticated = true;
+        req.session.userId = user._id;
+        req.session.username = username;
+
+        res.redirect('/');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Erreur lors de la création du compte');
+    }
+});
+
+app.get('/logout', (req, res) => {
+    req.session.destroy(() => {
+        res.redirect('/login');
+    });
+});
+
+app.get('/', requireAuth, async (req, res) => {
+    try {
+        const todos = await Todo.find({ userId: req.session.userId });
         res.render('index', { data: todos });
     } catch (err) {
         console.error(err);
@@ -28,32 +109,31 @@ app.get('/', async (req, res) => {
     }
 });
 
-app.post('/', (req, res) => {
+app.post('/', requireAuth, async (req, res) => {
     const { todoValue, tags } = req.body;
     const tagsArray = tags ? tags.split(',').map(t => t.trim()).filter(t => t) : [];
 
     const todo = new Todo({
         todo: todoValue,
         subtasks: [],
-        tags: tagsArray
+        tags: tagsArray,
+        userId: req.session.userId
     });
-
-    todo.save()
-        .then(() => res.redirect('/'))
-        .catch(err => {
-            console.error(err);
-            res.status(500).send("Internal Server Error");
-        });
+    try {
+        await todo.save();
+        res.redirect('/');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Erreur serveur");
+    }
 });
 
-app.post('/:id/subtask', async (req, res) => {
+app.post('/:id/subtask', requireAuth, async (req, res) => {
     const { subtaskTitle } = req.body;
-
     try {
-        await Todo.findByIdAndUpdate(
-            req.params.id,
-            { $push: { subtasks: { title: subtaskTitle } } },
-            { new: true }
+        await Todo.findOneAndUpdate(
+            { _id: req.params.id, userId: req.session.userId },
+            { $push: { subtasks: { title: subtaskTitle } } }
         );
         res.redirect('/');
     } catch (err) {
@@ -62,60 +142,58 @@ app.post('/:id/subtask', async (req, res) => {
     }
 });
 
-app.patch('/toggle/:id', async (req, res) => {
-    try {
-        const todo = await Todo.findById(req.params.id);
-        if (!todo) return res.status(404).send("Tâche non trouvée");
 
-        todo.done = !todo.done;
-        await todo.save();
-        res.send("Statut mis à jour");
+app.delete('/:id', requireAuth, async (req, res) => {
+    try {
+        await Todo.findOneAndDelete({ _id: req.params.id, userId: req.session.userId });
+        res.status(200).send("Todo supprimé avec succès");
     } catch (err) {
         console.error(err);
         res.status(500).send("Erreur serveur");
     }
 });
 
-app.patch('/toggle/:todoId/subtask/:subtaskId', async (req, res) => {
+app.delete('/:todoId/subtask/:subtaskId', requireAuth, async (req, res) => {
     try {
-        const todo = await Todo.findById(req.params.todoId);
-        if (!todo) return res.status(404).send("Tâche non trouvée");
-
-        const subtask = todo.subtasks.id(req.params.subtaskId);
-        if (!subtask) return res.status(404).send("Sous-tâche non trouvée");
-
-        subtask.done = !subtask.done;
-        await todo.save();
-        res.send("Statut sous-tâche mis à jour");
-    } catch (err) {
-        console.error(err);
-        res.status(500).send("Erreur serveur");
-    }
-});
-
-app.delete('/:id', async (req, res) => {
-    try {
-        await Todo.findByIdAndDelete(req.params.id);
-        res.status(200).send("Todo deleted successfully");
-    } catch (err) {
-        console.error(err);
-        res.status(500).send("Internal Server Error");
-    }
-});
-
-app.delete('/:todoId/subtask/:subtaskId', async (req, res) => {
-    try {
-        await Todo.findByIdAndUpdate(
-            req.params.todoId,
+        await Todo.findOneAndUpdate(
+            { _id: req.params.todoId, userId: req.session.userId },
             { $pull: { subtasks: { _id: req.params.subtaskId } } }
         );
-        res.status(200).send("Subtask deleted successfully");
+        res.status(200).send('Sous-tâche supprimée');
     } catch (err) {
         console.error(err);
-        res.status(500).send("Internal Server Error");
+        res.status(500).send('Erreur serveur');
     }
 });
 
+app.post('/:id/tag', requireAuth, async (req, res) => {
+    const { tagValue } = req.body;
+    try {
+        await Todo.findOneAndUpdate(
+            { _id: req.params.id, userId: req.session.userId },
+            { $addToSet: { tags: tagValue } }
+        );
+        res.sendStatus(200);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Erreur lors de l’ajout du tag');
+    }
+});
+
+app.delete('/:id/tag/:tag', requireAuth, async (req, res) => {
+    try {
+        await Todo.findOneAndUpdate(
+            { _id: req.params.id, userId: req.session.userId },
+            { $pull: { tags: req.params.tag } }
+        );
+        res.sendStatus(200);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Erreur lors de la suppression du tag');
+    }
+});
+
+
 app.listen(port, () => {
-    console.log('Server is running on port ' + port);
+    console.log('Server running on port ' + port);
 });

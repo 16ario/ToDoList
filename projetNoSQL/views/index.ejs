@@ -1,122 +1,216 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
-    <meta charset="UTF-8" />
-    <title>Todo List</title>
-    <style>
-        body { font-family: 'Arial'; background-color: #f0f2f5; padding: 40px; }
-        h1 { text-align: center; }
-        form.main-form { display: flex; justify-content: center; gap: 10px; margin-bottom: 30px; }
-        form input[type="text"] { padding: 10px; border-radius: 6px; }
-        form input[name="todoValue"] { width: 300px; }
-        form input[name="tags"] { width: 200px; }
-        form button { background: #27ae60; color: #fff; padding: 10px; border-radius: 6px; cursor: pointer; }
-        ul { list-style: none; max-width: 600px; margin: 0 auto; padding: 0; }
-        li { background: #fff; padding: 12px 20px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .tags { margin-top: 8px; }
-        .tag { display: inline-block; background: #3498db; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-right: 6px; }
-        .subtask-list li { background: #f9f9f9; padding: 6px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
-        .subtask-form { display: flex; gap: 10px; margin-top: 10px; }
-        .subtask-delete-btn, .delete-btn { background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; padding: 4px 8px; }
-        .toggle-subtask-btn, .toggle-todo-btn { margin-left: 10px; }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Todo List</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 700px;
+      margin: 40px auto;
+      background: #fafafa;
+      padding: 20px;
+      border-radius: 6px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+      color: #333;
+    }
+
+    h1 {
+      margin-bottom: 25px;
+      color: #2c3e50;
+    }
+
+    form {
+      margin-bottom: 30px;
+    }
+
+    input[type="text"] {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-right: 10px;
+    }
+    .todo-input {
+      width: 50%;
+    }
+    .tags-input {
+      width: 20%;
+    }
+
+    button {
+      padding: 10px 20px;
+      background-color: #2980b9;
+      border: none;
+      border-radius: 4px;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #1c5980;
+    }
+
+    ul {
+      list-style-type: none;
+      padding-left: 0;
+    }
+
+    li {
+      background: white;
+      margin-bottom: 10px;
+      padding: 12px 15px;
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+    }
+
+    li.done {
+      text-decoration: line-through;
+      color: gray;
+    }
+
+    .subtasks {
+      margin-top: 10px;
+      padding-left: 20px;
+      width: 100%;
+    }
+
+    .subtasks li {
+      background: #f5f5f5;
+      margin-bottom: 6px;
+      padding: 8px 12px;
+      border-radius: 3px;
+      font-size: 0.9em;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .subtasks li.done {
+      text-decoration: line-through;
+      color: #999;
+    }
+
+    .tags {
+      margin-top: 8px;
+      font-size: 0.85em;
+      color: #555;
+    }
+
+    .tag {
+      background-color: #d1ecf1;
+      color: #0c5460;
+      padding: 2px 8px;
+      border-radius: 12px;
+      margin-right: 6px;
+      display: inline-block;
+    }
+
+    .delete-btn {
+      background-color: #e74c3c;
+      border: none;
+      color: white;
+      border-radius: 3px;
+      padding: 5px 9px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 0.9em;
+      margin-left: 10px;
+    }
+    .delete-btn:hover {
+      background-color: #c0392b;
+    }
+
+    .logout {
+      margin-bottom: 30px;
+      text-align: right;
+    }
+
+    .logout a {
+      color: #e74c3c;
+      font-weight: bold;
+      text-decoration: none;
+    }
+    .logout a:hover {
+      text-decoration: underline;
+    }
+  </style>
 </head>
 <body>
-    <h1>Todo List</h1>
 
-    <form action="/" method="POST" class="main-form">
-        <input type="text" name="todoValue" placeholder="Enter a new todo" required />
-        <input type="text" name="tags" placeholder="Add tags separated by commas" />
-        <button type="submit">Add Todo</button>
-    </form>
+  <div class="logout">
+    <a href="/logout">Déconnexion</a>
+  </div>
 
-    <ul>
-        <% if(data) { %>
-            <% data.forEach(todo => { %>
-                <li>
-                    <div class="todo-header">
-                        <strong style="<%= todo.done ? 'text-decoration: line-through; color: gray;' : '' %>">
-                            <%= todo.todo %> <% if(todo.done){ %>(✔)<% } %>
-                        </strong>
-                        <form data-id="<%= todo._id %>" class="toggle-todo-form" style="display:inline;">
-                            <button type="submit"><%= todo.done ? 'Undo' : 'Done' %></button>
-                        </form>
-                        <form data-id="<%= todo._id %>" class="delete-form" style="display:inline;">
-                            <button type="submit" class="delete-btn">Delete</button>
-                        </form>
-                    </div>
+  <h1>Ma Todo List</h1>
 
-                    <% if (todo.tags.length) { %>
-                        <div class="tags">
-                            <% todo.tags.forEach(tag => { %>
-                                <span class="tag"><%= tag %></span>
-                            <% }) %>
-                        </div>
-                    <% } %>
+  <form method="POST" action="/">
+    <input type="text" name="todoValue" placeholder="Nouvelle tâche" class="todo-input" required />
+    <input type="text" name="tags" placeholder="Tags (séparés par des virgules)" class="tags-input" />
+    <button type="submit">Ajouter</button>
+  </form>
 
-                    <% if (todo.subtasks.length) { %>
-                        <ul class="subtask-list">
-                            <% todo.subtasks.forEach(sub => { %>
-                                <li>
-                                    <span style="<%= sub.done ? 'text-decoration: line-through; color: gray;' : '' %>">
-                                        <%= sub.title %> <% if(sub.done){ %>(✔)<% } %>
-                                    </span>
-                                    <button class="toggle-subtask-btn" data-todo-id="<%= todo._id %>" data-subtask-id="<%= sub._id %>">
-                                        <%= sub.done ? 'Undo' : 'Done' %>
-                                    </button>
-                                    <button class="subtask-delete-btn" data-todo-id="<%= todo._id %>" data-subtask-id="<%= sub._id %>">X</button>
-                                </li>
-                            <% }) %>
-                        </ul>
-                    <% } %>
+  <ul>
+    <% data.forEach(todo => { %>
+      <li class="<%= todo.done ? 'done' : '' %>" data-id="<%= todo._id %>">
+        <div style="flex-grow: 1;">
+          <span><%= todo.todo %></span>
 
-                    <form action="/<%= todo._id %>/subtask" method="POST" class="subtask-form">
-                        <input type="text" name="subtaskTitle" placeholder="Add subtask..." required />
-                        <button type="submit">Add</button>
-                    </form>
-                </li>
-            <% }); %>
-        <% } %>
-    </ul>
+          <% if (todo.tags && todo.tags.length > 0) { %>
+            <div class="tags">
+              <% todo.tags.forEach(tag => { %>
+                <span class="tag"><%= tag %></span>
+              <% }) %>
+            </div>
+          <% } %>
 
-    <script>
-        document.querySelectorAll('.delete-form').forEach(form => {
-            form.addEventListener('submit', e => {
-                e.preventDefault();
-                const id = form.dataset.id;
-                fetch('/' + id, { method: 'DELETE' })
-                    .then(res => res.ok ? location.reload() : alert("Erreur suppression"))
-            });
-        });
+          <ul class="subtasks">
+            <% todo.subtasks.forEach(sub => { %>
+              <li class="<%= sub.done ? 'done' : '' %>" data-subtask-id="<%= sub._id %>">
+                <span><%= sub.title %></span>
+                <button class="delete-btn" data-subtask-id="<%= sub._id %>" data-todo-id="<%= todo._id %>">x</button>
+              </li>
+            <% }) %>
+          </ul>
 
-        document.querySelectorAll('.subtask-delete-btn').forEach(button => {
-            button.addEventListener('click', e => {
-                e.preventDefault();
-                const todoId = button.getAttribute('data-todo-id');
-                const subtaskId = button.getAttribute('data-subtask-id');
-                fetch(`/${todoId}/subtask/${subtaskId}`, { method: 'DELETE' })
-                    .then(res => res.ok ? location.reload() : alert("Erreur suppression sous-tâche"));
-            });
-        });
+          <form method="POST" action="/<%= todo._id %>/subtask" style="margin-top: 10px;">
+            <input type="text" name="subtaskTitle" placeholder="Nouvelle sous-tâche" required style="padding:5px 8px; width: 70%;" />
+            <button type="submit" style="padding:5px 10px;">Ajouter</button>
+          </form>
+        </div>
 
-        document.querySelectorAll('.toggle-todo-form').forEach(form => {
-            form.addEventListener('submit', e => {
-                e.preventDefault();
-                const id = form.dataset.id;
-                fetch(`/toggle/${id}`, { method: 'PATCH' })
-                    .then(res => res.ok ? location.reload() : alert("Erreur mise à jour statut"));
-            });
-        });
+        <button class="delete-btn" data-todo-id="<%= todo._id %>">Supprimer</button>
+      </li>
+    <% }) %>
+  </ul>
 
-        document.querySelectorAll('.toggle-subtask-btn').forEach(button => {
-            button.addEventListener('click', e => {
-                e.preventDefault();
-                const todoId = button.getAttribute('data-todo-id');
-                const subtaskId = button.getAttribute('data-subtask-id');
-                fetch(`/toggle/${todoId}/subtask/${subtaskId}`, { method: 'PATCH' })
-                    .then(res => res.ok ? location.reload() : alert("Erreur mise à jour sous-tâche"));
-            });
-        });
-    </script>
+  <script>
+    async function deleteTodo(todoId) {
+      const res = await fetch('/' + todoId, { method: 'DELETE' });
+      if (res.ok) location.reload();
+      else alert('Erreur lors de la suppression');
+    }
+
+    async function deleteSubtask(todoId, subtaskId) {
+      const res = await fetch(`/${todoId}/subtask/${subtaskId}`, { method: 'DELETE' });
+      if (res.ok) location.reload();
+      else alert('Erreur lors de la suppression de la sous-tâche');
+    }
+
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+        const todoId = btn.getAttribute('data-todo-id');
+        const subtaskId = btn.getAttribute('data-subtask-id');
+        if (subtaskId) {
+          if (confirm('Supprimer cette sous-tâche ?')) deleteSubtask(todoId, subtaskId);
+        } else if (todoId) {
+          if (confirm('Supprimer cette tâche ?')) deleteTodo(todoId);
+        }
+      });
+    });
+  </script>
 </body>
 </html>

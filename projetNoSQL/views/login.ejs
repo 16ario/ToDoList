@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Connexion</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f2f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .top-menu {
+      width: 100%;
+      text-align: right;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .top-menu a {
+      text-decoration: none;
+      margin-left: 10px;
+      font-weight: bold;
+    }
+
+    form {
+      background-color: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      margin-top: 50px;
+    }
+
+    input {
+      display: block;
+      margin-bottom: 15px;
+      padding: 10px;
+      width: 250px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    button {
+      padding: 10px;
+      width: 100%;
+      background-color: #27ae60;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #219150;
+    }
+
+    .error {
+      color: red;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-menu">
+    <% if (isAuthenticated) { %>
+      <a href="/logout" style="color:#e74c3c;">Se déconnecter</a>
+    <% } else { %>
+      <a href="/login" style="color:#2980b9;">Se connecter</a>
+      <a href="/signup" style="color:#27ae60;">Créer un compte</a>
+    <% } %>
+  </div>
+
+  <form action="/login" method="POST">
+    <h2>Se connecter</h2>
+
+    <% if (typeof error !== 'undefined') { %>
+      <div class="error"><%= error %></div>
+    <% } %>
+
+    <input type="text" name="username" placeholder="Nom d'utilisateur" required>
+    <input type="password" name="password" placeholder="Mot de passe" required>
+    <button type="submit">Connexion</button>
+  </form>
+
+</body>
+</html>
