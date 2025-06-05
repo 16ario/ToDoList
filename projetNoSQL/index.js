@@ -18,7 +18,6 @@ mongoose.connect(dburl, {
     useUnifiedTopology: true
 });
 
-// Route GET
 app.get('/', async (req, res) => {
     try {
         const todos = await Todo.find();
@@ -29,7 +28,6 @@ app.get('/', async (req, res) => {
     }
 });
 
-// Ajouter todo
 app.post('/', (req, res) => {
     const { todoValue, tags } = req.body;
     const tagsArray = tags ? tags.split(',').map(t => t.trim()).filter(t => t) : [];
@@ -48,7 +46,6 @@ app.post('/', (req, res) => {
         });
 });
 
-// Ajouter subtask
 app.post('/:id/subtask', async (req, res) => {
     const { subtaskTitle } = req.body;
 
@@ -65,9 +62,38 @@ app.post('/:id/subtask', async (req, res) => {
     }
 });
 
-// Supprimer todo
+app.patch('/toggle/:id', async (req, res) => {
+    try {
+        const todo = await Todo.findById(req.params.id);
+        if (!todo) return res.status(404).send("Tâche non trouvée");
+
+        todo.done = !todo.done;
+        await todo.save();
+        res.send("Statut mis à jour");
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Erreur serveur");
+    }
+});
+
+app.patch('/toggle/:todoId/subtask/:subtaskId', async (req, res) => {
+    try {
+        const todo = await Todo.findById(req.params.todoId);
+        if (!todo) return res.status(404).send("Tâche non trouvée");
+
+        const subtask = todo.subtasks.id(req.params.subtaskId);
+        if (!subtask) return res.status(404).send("Sous-tâche non trouvée");
+
+        subtask.done = !subtask.done;
+        await todo.save();
+        res.send("Statut sous-tâche mis à jour");
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Erreur serveur");
+    }
+});
+
 app.delete('/:id', async (req, res) => {
-    console.log("DELETE todo: ", req.params.id);
     try {
         await Todo.findByIdAndDelete(req.params.id);
         res.status(200).send("Todo deleted successfully");
@@ -77,9 +103,7 @@ app.delete('/:id', async (req, res) => {
     }
 });
 
-// Supprimer sous-tâche
 app.delete('/:todoId/subtask/:subtaskId', async (req, res) => {
-    console.log(`DELETE subtask: todoId=${req.params.todoId}, subtaskId=${req.params.subtaskId}`);
     try {
         await Todo.findByIdAndUpdate(
             req.params.todoId,
